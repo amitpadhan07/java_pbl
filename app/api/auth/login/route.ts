@@ -4,7 +4,8 @@ import { AuthenticationService } from '@/lib/services/services';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const email = typeof body?.email === 'string' ? body.email.trim() : '';
+    const password = typeof body?.password === 'string' ? body.password : '';
 
     if (!email || !password) {
       return NextResponse.json(
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message || 'Login failed' },
+      { error: error?.message || 'Login failed' },
       { status: 400 }
     );
   }

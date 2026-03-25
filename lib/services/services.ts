@@ -40,6 +40,10 @@ export abstract class BaseService {
 export class AuthenticationService extends BaseService {
   private readonly SALT_ROUNDS = 10;
 
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
   private mapToUser(result: any): User {
     const email =
       typeof result?.getEmail === 'function' ? result.getEmail() : result?.email;
@@ -70,8 +74,11 @@ export class AuthenticationService extends BaseService {
     name: string,
     location: string = ''
   ): Promise<User> {
+    const normalizedEmail = this.normalizeEmail(email);
+    const trimmedName = name.trim();
+
     // Check if user already exists
-    const existingUser = await this.userRepo.findByEmail(email);
+    const existingUser = await this.userRepo.findByEmail(normalizedEmail);
     if (existingUser) {
       throw new Error('User with this email already exists');
     }
@@ -80,22 +87,42 @@ export class AuthenticationService extends BaseService {
     const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
 
     // Create user entity
-    const user = new User(email, hashedPassword, name, location);
+    const user = new User(normalizedEmail, hashedPassword, trimmedName, location);
 
     // Save to database
-    const result = await this.userRepo.create(user.toJSON());
+    // Persist hashed password while keeping User.toJSON() safe for API responses.
+    let result: any;
+
+    try {
+      result = await this.userRepo.create({
+        ...user.toJSON(),
+        password: hashedPassword,
+      });
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new Error('User with this email already exists');
+      }
+      throw error;
+    }
+
     return this.mapToUser(result);
   }
 
   async loginUser(email: string, password: string): Promise<User | null> {
-    const result = await this.userRepo.findByEmail(email);
+    const normalizedEmail = this.normalizeEmail(email);
+    const result = await this.userRepo.findByEmail(normalizedEmail);
     if (!result) {
       return null;
     }
 
     const user = this.mapToUser(result);
+    const storedHash = user.getPassword();
 
-    const isPasswordValid = await bcrypt.compare(password, user.getPassword());
+    if (!storedHash || typeof storedHash !== 'string') {
+      return null;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, storedHash);
     if (!isPasswordValid) {
       return null;
     }

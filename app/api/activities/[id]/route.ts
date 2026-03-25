@@ -4,12 +4,13 @@ import { ActivityService, ReportService } from '@/lib/services/services';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const activityService = new ActivityService();
     const reportService = new ReportService();
-    const activityId = new ObjectId(params.id);
+    const { id } = await params;
+    const activityId = new ObjectId(id);
     const activity = await activityService.getActivityById(activityId);
 
     if (!activity) {
@@ -48,11 +49,12 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const activityService = new ActivityService();
-    const activity = await activityService.getActivityById(new ObjectId(params.id));
+    const { id } = await params;
+    const activity = await activityService.getActivityById(new ObjectId(id));
 
     if (!activity) {
       return NextResponse.json(

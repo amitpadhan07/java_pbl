@@ -24,9 +24,13 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
+    const message = error?.message || 'Registration failed';
+    const status =
+      message === 'User with this email already exists' ? 409 : 400;
+
     return NextResponse.json(
-      { error: error.message || 'Registration failed' },
-      { status: 400 }
+      { error: message },
+      { status }
     );
   }
 }

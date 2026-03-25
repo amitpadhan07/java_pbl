@@ -222,13 +222,15 @@ export class ReportRepository extends BaseRepository<any> {
     const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
     const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 1);
 
+    const { _id, ...safeReportData } = reportData || {};
+
     const result = await collection.findOneAndUpdate(
       { userId, month: { $gte: startDate, $lt: endDate } },
       {
         $set: {
           userId,
           month: startDate,
-          ...reportData,
+          ...safeReportData,
           updatedAt: new Date(),
         },
       },

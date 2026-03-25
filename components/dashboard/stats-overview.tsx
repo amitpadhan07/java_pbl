@@ -1,7 +1,19 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
 import { Truck, Zap, Trash2 } from 'lucide-react';
 
 interface StatsOverviewProps {
@@ -64,6 +76,14 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
     },
   ];
 
+  const pieData = chartData.filter(item => item.value > 0);
+
+  const pieLabel = ({ name, percent, value }: { name: string; percent: number; value: number }) => {
+    // Hide labels for zero/tiny slices to avoid text collisions.
+    if (!value || percent < 0.04) return '';
+    return `${name} ${(percent * 100).toFixed(0)}%`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Stat Cards */}
@@ -119,19 +139,20 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={chartData}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={pieLabel}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {chartData.map((entry, index) => (
+                  {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
+                <Legend verticalAlign="bottom" align="center" />
                 <Tooltip formatter={(value) => `${value} kg CO₂`} />
               </PieChart>
             </ResponsiveContainer>
