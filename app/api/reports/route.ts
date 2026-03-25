@@ -19,17 +19,10 @@ export async function GET(request: NextRequest) {
 
     if (month) {
       const reportMonth = new Date(month);
-      const report = await reportService.getReportForMonth(
+      const report = await reportService.generateMonthlyReport(
         userObjectId,
         reportMonth
       );
-
-      if (!report) {
-        return NextResponse.json(
-          { error: 'Report not found' },
-          { status: 404 }
-        );
-      }
 
       return NextResponse.json(
         {

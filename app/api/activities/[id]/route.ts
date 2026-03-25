@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
-import { ActivityService } from '@/lib/services/services';
+import { ActivityService, ReportService } from '@/lib/services/services';
 
 export async function DELETE(
   request: NextRequest,
@@ -8,7 +8,18 @@ export async function DELETE(
 ) {
   try {
     const activityService = new ActivityService();
-    const success = await activityService.deleteActivity(new ObjectId(params.id));
+    const reportService = new ReportService();
+    const activityId = new ObjectId(params.id);
+    const activity = await activityService.getActivityById(activityId);
+
+    if (!activity) {
+      return NextResponse.json(
+        { error: 'Activity not found' },
+        { status: 404 }
+      );
+    }
+
+    const success = await activityService.deleteActivity(activityId);
 
     if (!success) {
       return NextResponse.json(
@@ -16,6 +27,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Recalculate the report for the month that contained the deleted activity.
+    await reportService.generateMonthlyReport(
+      new ObjectId(activity.userId),
+      new Date(activity.createdAt)
+    );
 
     return NextResponse.json(
       { success: true },

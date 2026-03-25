@@ -167,7 +167,18 @@ export abstract class Activity extends Entity {
 
   abstract calculateEmissions(): number;
 
-  abstract toJSON(): any;
+  toJSON(): any {
+    return {
+      _id: this._id,
+      userId: this.userId,
+      activityType: this.activityType,
+      emissionValue: this.emissionValue,
+      unit: this.unit,
+      notes: this.notes,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
+  }
 }
 
 /**

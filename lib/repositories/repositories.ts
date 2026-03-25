@@ -1,6 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getCollection } from '@/lib/mongodb';
-import { User } from './entities';
+import { User } from '@/lib/models/entities';
 
 /**
  * Abstract BaseRepository - Foundation for all repository classes
@@ -45,7 +45,7 @@ export abstract class BaseRepository<T> {
       { $set: { ...document, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );
-    return result.value as T | null;
+    return ((result as any)?.value ?? result) as T | null;
   }
 
   async delete(id: ObjectId): Promise<boolean> {
@@ -85,7 +85,7 @@ export class UserRepository extends BaseRepository<User> {
       { $set: { preferences, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );
-    return result.value as User | null;
+    return ((result as any)?.value ?? result) as User | null;
   }
 
   async updateUserLocation(
@@ -98,7 +98,7 @@ export class UserRepository extends BaseRepository<User> {
       { $set: { location, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );
-    return result.value as User | null;
+    return ((result as any)?.value ?? result) as User | null;
   }
 }
 
@@ -220,9 +220,10 @@ export class ReportRepository extends BaseRepository<any> {
   ): Promise<any> {
     const collection = await this.getCollection();
     const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
+    const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 1);
 
     const result = await collection.findOneAndUpdate(
-      { userId, month: { $gte: startDate } },
+      { userId, month: { $gte: startDate, $lt: endDate } },
       {
         $set: {
           userId,
@@ -234,6 +235,6 @@ export class ReportRepository extends BaseRepository<any> {
       { upsert: true, returnDocument: 'after' }
     );
 
-    return result.value;
+    return (result as any)?.value ?? result;
   }
 }

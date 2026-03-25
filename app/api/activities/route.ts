@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
-import { ActivityService } from '@/lib/services/services';
+import { ActivityService, ReportService } from '@/lib/services/services';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const activityService = new ActivityService();
+    const reportService = new ReportService();
     const userObjectId = new ObjectId(userId);
     let activity;
 
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Keep monthly report in sync with newly created activity.
+    await reportService.generateMonthlyReport(userObjectId, new Date());
 
     return NextResponse.json(
       {

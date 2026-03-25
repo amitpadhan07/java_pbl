@@ -40,6 +40,30 @@ export abstract class BaseService {
 export class AuthenticationService extends BaseService {
   private readonly SALT_ROUNDS = 10;
 
+  private mapToUser(result: any): User {
+    const email =
+      typeof result?.getEmail === 'function' ? result.getEmail() : result?.email;
+    const password =
+      typeof result?.getPassword === 'function'
+        ? result.getPassword()
+        : result?.password;
+    const name =
+      typeof result?.getName === 'function' ? result.getName() : result?.name;
+    const location =
+      typeof result?.getLocation === 'function'
+        ? result.getLocation()
+        : result?.location || '';
+
+    const user = new User(email, password, name, location);
+    const id = typeof result?.getId === 'function' ? result.getId() : result?._id;
+
+    if (id) {
+      user.setId(new ObjectId(id));
+    }
+
+    return user;
+  }
+
   async registerUser(
     email: string,
     password: string,
@@ -60,23 +84,18 @@ export class AuthenticationService extends BaseService {
 
     // Save to database
     const result = await this.userRepo.create(user.toJSON());
-    const savedUser = new User(
-      result.email,
-      result.password,
-      result.name,
-      result.location
-    );
-    savedUser.setId(result._id);
-    return savedUser;
+    return this.mapToUser(result);
   }
 
   async loginUser(email: string, password: string): Promise<User | null> {
-    const user = await this.userRepo.findByEmail(email);
-    if (!user) {
+    const result = await this.userRepo.findByEmail(email);
+    if (!result) {
       return null;
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const user = this.mapToUser(result);
+
+    const isPasswordValid = await bcrypt.compare(password, user.getPassword());
     if (!isPasswordValid) {
       return null;
     }
@@ -85,7 +104,12 @@ export class AuthenticationService extends BaseService {
   }
 
   async getUserById(userId: ObjectId): Promise<User | null> {
-    return await this.userRepo.findById(userId);
+    const result = await this.userRepo.findById(userId);
+    if (!result) {
+      return null;
+    }
+
+    return this.mapToUser(result);
   }
 }
 
@@ -280,13 +304,7 @@ export class ReportService extends BaseService {
  * Implements: Single Responsibility and Encapsulation
  */
 export class UserService extends BaseService {
-  async updateUserProfile(
-    userId: ObjectId,
-    location: string
-  ): Promise<User | null> {
-    const result = await this.userRepo.updateUserLocation(userId, location);
-    if (!result) return null;
-
+  private mapToUser(result: any): User {
     const user = new User(
       result.email,
       result.password,
@@ -294,7 +312,22 @@ export class UserService extends BaseService {
       result.location
     );
     user.setId(new ObjectId(result._id));
+
+    if (result.preferences) {
+      user.updatePreferences(result.preferences);
+    }
+
     return user;
+  }
+
+  async updateUserProfile(
+    userId: ObjectId,
+    location: string
+  ): Promise<User | null> {
+    const result = await this.userRepo.updateUserLocation(userId, location);
+    if (!result) return null;
+
+    return this.mapToUser(result);
   }
 
   async updateUserPreferences(
@@ -304,18 +337,14 @@ export class UserService extends BaseService {
     const result = await this.userRepo.updateUserPreferences(userId, preferences);
     if (!result) return null;
 
-    const user = new User(
-      result.email,
-      result.password,
-      result.name,
-      result.location
-    );
-    user.setId(new ObjectId(result._id));
-    return user;
+    return this.mapToUser(result);
   }
 
   async getUserProfile(userId: ObjectId): Promise<User | null> {
-    return await this.userRepo.findById(userId);
+    const result = await this.userRepo.findById(userId);
+    if (!result) return null;
+
+    return this.mapToUser(result);
   }
 
   async deleteUserAccount(userId: ObjectId): Promise<boolean> {
