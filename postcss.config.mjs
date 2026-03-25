@@ -6,3 +6,7 @@ const config = {
 }
 
 export default config
+//import tailwindcss from 'tailwindcss'
+//export default {
+//  plugins: [tailwindcss('./tailwind.config.js')],
+//} 
